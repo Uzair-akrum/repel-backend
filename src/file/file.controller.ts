@@ -10,4 +10,11 @@ export class FileController {
         const response = await this.fileService.createNewProject(body);
         return response
     }
+
+    @Post('/cachedfile')
+    async getCachedFile(@Body() body) {
+
+        const response = await this.fileService.getCachedFiles(body);
+        return response
+    }
 }   
