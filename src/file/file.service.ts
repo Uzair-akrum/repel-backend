@@ -4,28 +4,34 @@ import { S3Client, GetObjectCommand, ListObjectsV2Command, _Object, CommonPrefix
 import multer, { Multer, memoryStorage } from 'multer';
 const fs = require('fs')
 const path = require('path');
+const fsPromise = require('fs/promises')
+import { diff_match_patch } from 'diff-match-patch';
 
 @Injectable()
 export class FileService {
     private bucketName;
+    private dmp;
 
     constructor(private readonly configService: ConfigService) {
         this.bucketName = this.configService.get('BUCKET')
-
-
+        this.dmp = new diff_match_patch();
     }
 
-    private upload: Multer;
-    private storage
+
     isValidFileName(fileName) {
         return /\.(js|json)$/.test(fileName);
     }
-    getCachedFiles(body) {
-        const { fileName, project } = body;
-        const filePath = path.join(process.cwd(), `/${project}/${fileName}`)
-        const file = fs.readFileSync(filePath).toString('utf8')
-        return file
-
+    async getCachedFiles(body) {
+        const { path, project, type } = body;
+        if (type == FileType.FILE) {
+            const filePath = path.join(process.cwd(), `/${project}/${path}`)
+            const file = fs.readFileSync(filePath).toString('utf8')
+            return file
+        }
+        else if (type == FileType.DIRECTORY) {
+            const files = await fsPromise.readdir(path)
+            return files
+        }
     }
     streamToString = (stream) =>
         new Promise((resolve, reject) => {
@@ -41,6 +47,9 @@ export class FileService {
         if (this.isValidFileName(fileName)) {
             const filePath = path.join(process.cwd(), `/${fileName}`)
             fs.writeFileSync(filePath, content)
+        } else {
+            const folderPath = path.join(process.cwd(), `/${fileName}`);
+            const dirCreation = await fsPromise.mkdir(folderPath);
         }
 
     }
@@ -49,7 +58,6 @@ export class FileService {
 
 
         const { name, project } = body;
-        const folderName = path.join(process.cwd(), `/${project}`)
 
         const client = new S3Client({
             region: this.configService.get('REGION'),
@@ -80,14 +88,19 @@ export class FileService {
             const bodyContents = await this.streamToString(Body)
             const file = { fileName: object.Key.replace('base/', ''), content: bodyContents }
             await this.uploadToFileStorage(project, file)
-
-
             fileReponse.push(file)
-
-
         }))
 
         return fileReponse;
+
+    }
+    modifyFile = async (body) => {
+        const { fileName, content, project } = body;
+        const filePath = path.join(process.cwd(), `/${project}/${fileName}`)
+        const fileInDirectory = fs.readFileSync(filePath).toString('utf8');
+        const diff = this.dmp.diff_main(fileInDirectory, content);
+        return diff
+
 
     }
 }

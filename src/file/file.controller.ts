@@ -13,8 +13,14 @@ export class FileController {
 
     @Post('/cachedfile')
     async getCachedFile(@Body() body) {
-
         const response = await this.fileService.getCachedFiles(body);
+        return response
+    }
+
+    @Post('/modifyFile')
+    async modifyFile(@Body() body) {
+
+        const response = await this.fileService.modifyFile(body);
         return response
     }
 }   
