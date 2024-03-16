@@ -1,18 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, GetObjectCommand, ListObjectsV2Command, _Object, CommonPrefix } from "@aws-sdk/client-s3";
-import multer, { Multer, memoryStorage } from 'multer';
-const fs = require('fs')
+import { S3Client, GetObjectCommand, ListObjectsV2Command, _Object, CommonPrefix } from "@aws-sdk/client-s3"; const fs = require('fs')
 const path = require('path');
 const fsPromise = require('fs/promises')
 import { diff_match_patch } from 'diff-match-patch';
-
-@Injectable()
+@Injectable() 
 export class FileService {
     private bucketName;
     private dmp;
 
-    constructor(private readonly configService: ConfigService) {
+    constructor(private readonly configService: ConfigService) {    
         this.bucketName = this.configService.get('BUCKET')
         this.dmp = new diff_match_patch();
     }
